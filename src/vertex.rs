@@ -4,14 +4,14 @@ use super::{axial::Axial, hex::BuildType};
 pub struct Vertex {
     pub pos: Axial,
     pub build_type: BuildType,
-    pub owner: i32,
+    pub owner: Option<usize>,
 }
 impl Vertex {
-    pub fn new(pos: Axial, build_type: BuildType, owner: i32) -> Self {
+    pub fn new(pos: Axial, build_type: BuildType) -> Self {
         Vertex {
             pos,
             build_type,
-            owner,
+            owner: None,
         }
     }
 }

@@ -1,12 +1,9 @@
 use std::collections::HashMap;
 
+use anyhow::{anyhow, Error, Result};
 use lazy_static::lazy_static;
 
-use crate::{
-    harbor::Harbor,
-    hex::Hex,
-    hex::{BuildType, Resource},
-};
+use crate::{harbor::Harbor, hex::BuildType, hex::Hex, player::Player, resource::Resource};
 
 use super::{
     axial::Axial,
@@ -77,7 +74,7 @@ impl Board {
             }
             for &offset in OFFSETS.iter() {
                 let a: Axial = hex.pos + offset;
-                vertices.insert(a, Vertex::new(a, BuildType::None, -1));
+                vertices.insert(a, Vertex::new(a, BuildType::None));
             }
         }
 
@@ -103,35 +100,75 @@ impl Board {
         board
     }
     pub fn get_valid_settlement_coords(&self) -> Vec<&Vertex> {
-        let mut valid = Vec::new();
-        for v in self.vertices.values() {
-            if self.is_valid_settlement_coords(v) {
-                valid.push(v);
-            }
-        }
-        valid
+        self.vertices
+            .values()
+            .filter(|&v| self.is_valid_settlement_coords(&v.pos))
+            .collect()
     }
     pub fn get_adjacent_vertices(&self, v: &Vertex) -> Vec<&Vertex> {
-        let mut valid = Vec::new();
-        for &offset in OFFSETS.iter() {
-            let adjacent = &(v.pos + offset);
-            if self.vertices.contains_key(adjacent) {
-                valid.push(&self.vertices[adjacent]);
-            }
-        }
-        valid
+        OFFSETS
+            .iter()
+            .map(|&offset| v.pos + offset)
+            .filter_map(|adjacent| self.vertices.get(&adjacent))
+            .collect()
     }
 
     /// Checks if a vertex is available for settlement
-    pub fn is_valid_settlement_coords(&self, v: &Vertex) -> bool {
-        if v.owner != -1 {
-            return false;
-        }
-        for a in self.get_adjacent_vertices(v) {
-            if a.owner != -1 {
+    pub fn is_valid_settlement_coords(&self, pos: &Axial) -> bool {
+        if let Some(v) = self.vertices.get(pos) {
+            if v.owner.is_some() {
                 return false;
             }
+            for neighbour in self.get_adjacent_vertices(v) {
+                if neighbour.owner.is_some() {
+                    return false;
+                }
+            }
+            true
+        } else {
+            false
         }
-        true
+    }
+    pub fn place_building(
+        &mut self,
+        player: &Player,
+        pos: &Axial,
+        build_type: BuildType,
+        //makes sure there is a road connecting
+        ensure_connected: bool,
+    ) -> Result<()> {
+        self.validate_build(&player, pos, ensure_connected)?;
+        if let Some(v) = self.vertices.get_mut(pos) {
+            v.build_type = build_type;
+            v.owner = Some(player.id);
+            return Ok(());
+        }
+        return Err(anyhow!("Invalid Build"));
+    }
+
+    fn validate_build(&self, player: &Player, pos: &Axial, ensure_connected: bool) -> Result<()> {
+        if !self.is_valid_settlement_coords(pos) {
+            return Err(anyhow!("Settlement spot is not valid"));
+        }
+        //TODO ensure_connected
+        Ok(())
+    }
+    pub fn yield_for_roll(roll: i32) {
+        todo!()
+    }
+}
+#[test]
+fn test_place_building() {
+    let mut board = Board::new();
+    let player = Player::new(1);
+    let b = board.place_building(&player, &Axial::new(0, 2), BuildType::Settlement, false);
+    match b {
+        Ok(_) => assert!(board.vertices[&Axial::new(0, 2)]
+            .owner
+            .is_some_and(|x| x == 1)),
+        Err(e) => {
+            eprintln!("Error {}", e);
+            assert!(false)
+        }
     }
 }

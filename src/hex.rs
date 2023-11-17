@@ -1,3 +1,5 @@
+use crate::resource::Resource;
+
 use super::axial::Axial;
 
 #[derive(Clone, Copy, Debug)]
@@ -12,13 +14,4 @@ pub enum BuildType {
     City,
     Settlement,
     None,
-}
-#[derive(Clone, Copy, Debug)]
-pub enum Resource {
-    None,
-    Ore,
-    Wheat,
-    Sheep,
-    Brick,
-    Wood,
 }
