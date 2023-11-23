@@ -1,5 +1,5 @@
 use crate::{axial::Axial, edge::EdgeCoords, resource::ResourceGroup, vertex::Vertex};
-
+#[derive(Debug)]
 pub struct Player {
     pub id: usize,
     pub buildings: Vec<Axial>,
@@ -14,5 +14,8 @@ impl Player {
             paths: Vec::new(),
             resources: ResourceGroup::new(),
         }
+    }
+    pub fn init_players(size: usize) -> Vec<Player> {
+        Vec::from_iter((0..size).map(|i| Player::new(i)))
     }
 }

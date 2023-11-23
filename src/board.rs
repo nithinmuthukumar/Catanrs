@@ -3,7 +3,13 @@ use std::collections::HashMap;
 use anyhow::{anyhow, Error, Result};
 use lazy_static::lazy_static;
 
-use crate::{harbor::Harbor, hex::BuildType, hex::Hex, player::Player, resource::Resource};
+use crate::{
+    harbor::Harbor,
+    hex::BuildType,
+    hex::Hex,
+    player::Player,
+    resource::{Resource, ResourceGroup},
+};
 
 use super::{
     axial::Axial,
@@ -21,6 +27,7 @@ lazy_static! {
         Axial::new(1, -1),
     ];
 }
+#[derive(Debug)]
 pub struct Board {
     pub hexes: HashMap<Axial, Hex>,
     pub edges: HashMap<EdgeCoords, Edge>,
@@ -105,10 +112,10 @@ impl Board {
             .filter(|&v| self.is_valid_settlement_coords(&v.pos))
             .collect()
     }
-    pub fn get_adjacent_vertices(&self, v: &Vertex) -> Vec<&Vertex> {
+    pub fn get_adjacent_vertices(&self, a: Axial) -> Vec<&Vertex> {
         OFFSETS
             .iter()
-            .map(|&offset| v.pos + offset)
+            .map(|&offset| a + offset)
             .filter_map(|adjacent| self.vertices.get(&adjacent))
             .collect()
     }
@@ -119,7 +126,7 @@ impl Board {
             if v.owner.is_some() {
                 return false;
             }
-            for neighbour in self.get_adjacent_vertices(v) {
+            for neighbour in self.get_adjacent_vertices(v.pos) {
                 if neighbour.owner.is_some() {
                     return false;
                 }
@@ -153,8 +160,19 @@ impl Board {
         //TODO ensure_connected
         Ok(())
     }
-    pub fn yield_for_roll(roll: i32) {
-        todo!()
+    pub fn yield_for_roll(&self, roll: i32) -> HashMap<usize, ResourceGroup> {
+        let mut yields = HashMap::new();
+        for hex in self.hexes.values() {
+            if hex.number == roll && self.robber != hex.pos {
+                for v in self.get_adjacent_vertices(hex.pos) {
+                    if let Some(o) = v.owner {
+                        let group = yields.entry(o).or_insert(ResourceGroup::new());
+                        group.add_resource(hex.resource_type, 1);
+                    }
+                }
+            }
+        }
+        yields
     }
 }
 #[test]
