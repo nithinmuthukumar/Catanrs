@@ -1,4 +1,6 @@
-use super::{axial::Axial, hex::BuildType};
+use crate::resource::ResourceGroup;
+
+use super::axial::Axial;
 
 #[derive(Debug, Clone, Copy)]
 pub struct Vertex {
@@ -12,6 +14,21 @@ impl Vertex {
             pos,
             build_type,
             owner: None,
+        }
+    }
+}
+#[derive(Debug, Clone, Copy)]
+pub enum BuildType {
+    City,
+    Settlement,
+    None,
+}
+impl BuildType {
+    pub fn cost(&self) -> ResourceGroup {
+        match self {
+            BuildType::City => ResourceGroup::empty(),
+            BuildType::Settlement => ResourceGroup::empty(),
+            BuildType::None => ResourceGroup::empty(),
         }
     }
 }

@@ -10,19 +10,29 @@ pub enum Resource {
     Wood,
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct ResourceGroup {
     resources: HashMap<Resource, i32>,
 }
 impl ResourceGroup {
-    pub fn new() -> ResourceGroup {
-        ResourceGroup {
-            resources: HashMap::new(),
-        }
+    pub fn empty() -> Self {
+        ResourceGroup::new(0, 0, 0, 0, 0)
     }
 
     pub(crate) fn add_resource(&mut self, resource_type: Resource, amount: i32) {
-        *self.resources.entry(resource_type).or_insert(0) += amount;
+        self.resources
+            .entry(resource_type)
+            .and_modify(|e| *e += amount);
+    }
+
+    fn new(ore: i32, wheat: i32, sheep: i32, brick: i32, wood: i32) -> Self {
+        let mut resources = HashMap::new();
+        resources.insert(Resource::Ore, ore);
+        resources.insert(Resource::Wheat, wheat);
+        resources.insert(Resource::Sheep, sheep);
+        resources.insert(Resource::Brick, brick);
+        resources.insert(Resource::Wood, wood);
+        Self { resources }
     }
 }
 impl std::ops::AddAssign<ResourceGroup> for ResourceGroup {
@@ -38,7 +48,7 @@ mod tests {
 
     #[test]
     fn test_add_resource_single() {
-        let mut resource_group = ResourceGroup::new();
+        let mut resource_group = ResourceGroup::empty();
         resource_group.add_resource(Resource::Wood, 3);
 
         assert_eq!(resource_group.resources[&Resource::Wood], 3);
@@ -46,8 +56,8 @@ mod tests {
 
     #[test]
     fn test_add_assign() {
-        let mut resource_group1 = ResourceGroup::new();
-        let mut resource_group2 = ResourceGroup::new();
+        let mut resource_group1 = ResourceGroup::empty();
+        let mut resource_group2 = ResourceGroup::empty();
 
         resource_group1.add_resource(Resource::Wood, 3);
         resource_group1.add_resource(Resource::Ore, 1);

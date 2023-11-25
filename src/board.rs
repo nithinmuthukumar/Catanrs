@@ -4,16 +4,17 @@ use anyhow::{anyhow, Error, Result};
 use lazy_static::lazy_static;
 
 use crate::{
+    edge::PathType,
     harbor::Harbor,
-    hex::BuildType,
     hex::Hex,
     player::Player,
     resource::{Resource, ResourceGroup},
+    vertex::BuildType,
 };
 
 use super::{
     axial::Axial,
-    edge::{Edge, EdgeCoords},
+    edge::{Edge, PathCoords},
     vertex::Vertex,
 };
 
@@ -30,9 +31,9 @@ lazy_static! {
 #[derive(Debug)]
 pub struct Board {
     pub hexes: HashMap<Axial, Hex>,
-    pub edges: HashMap<EdgeCoords, Edge>,
+    pub edges: HashMap<PathCoords, Edge>,
     pub vertices: HashMap<Axial, Vertex>,
-    pub harbors: HashMap<EdgeCoords, Harbor>,
+    pub harbors: HashMap<PathCoords, Harbor>,
     pub robber: Axial,
 }
 impl Board {
@@ -85,16 +86,17 @@ impl Board {
             }
         }
 
-        let mut edges: HashMap<EdgeCoords, Edge> = HashMap::new();
+        let mut edges: HashMap<PathCoords, Edge> = HashMap::new();
         for &v in vertices.keys() {
             for &offset in OFFSETS.iter() {
                 let adjacent = v + offset;
                 if vertices.contains_key(&adjacent) {
-                    let coords = EdgeCoords::new(v, adjacent);
-                    let p = Edge::new(coords.clone(), super::edge::EdgeType::None);
+                    let coords = PathCoords::new(v, adjacent);
+                    let p = Edge::new(coords.clone(), super::edge::PathType::None);
                     edges.insert(coords, p);
                 }
             }
+            //
         }
 
         let board = Board {
@@ -121,6 +123,7 @@ impl Board {
     }
 
     /// Checks if a vertex is available for settlement
+    // TODO define is_valid_coords for every type of building
     pub fn is_valid_settlement_coords(&self, pos: &Axial) -> bool {
         if let Some(v) = self.vertices.get(pos) {
             if v.owner.is_some() {
@@ -138,22 +141,22 @@ impl Board {
     }
     pub fn place_building(
         &mut self,
-        player: &Player,
-        pos: &Axial,
+        player: usize,
+        pos: Axial,
         build_type: BuildType,
         //makes sure there is a road connecting
         ensure_connected: bool,
     ) -> Result<()> {
-        self.validate_build(&player, pos, ensure_connected)?;
-        if let Some(v) = self.vertices.get_mut(pos) {
+        self.validate_build(player, &pos, ensure_connected)?;
+        if let Some(v) = self.vertices.get_mut(&pos) {
             v.build_type = build_type;
-            v.owner = Some(player.id);
+            v.owner = Some(player);
             return Ok(());
         }
         return Err(anyhow!("Invalid Build"));
     }
 
-    fn validate_build(&self, player: &Player, pos: &Axial, ensure_connected: bool) -> Result<()> {
+    fn validate_build(&self, player: usize, pos: &Axial, ensure_connected: bool) -> Result<()> {
         if !self.is_valid_settlement_coords(pos) {
             return Err(anyhow!("Settlement spot is not valid"));
         }
@@ -166,7 +169,7 @@ impl Board {
             if hex.number == roll && self.robber != hex.pos {
                 for v in self.get_adjacent_vertices(hex.pos) {
                     if let Some(o) = v.owner {
-                        let group = yields.entry(o).or_insert(ResourceGroup::new());
+                        let group = yields.entry(o).or_insert(ResourceGroup::empty());
                         group.add_resource(hex.resource_type, 1);
                     }
                 }
@@ -174,19 +177,49 @@ impl Board {
         }
         yields
     }
-}
-#[test]
-fn test_place_building() {
-    let mut board = Board::new();
-    let player = Player::new(1);
-    let b = board.place_building(&player, &Axial::new(0, 2), BuildType::Settlement, false);
-    match b {
-        Ok(_) => assert!(board.vertices[&Axial::new(0, 2)]
-            .owner
-            .is_some_and(|x| x == 1)),
-        Err(e) => {
-            eprintln!("Error {}", e);
-            assert!(false)
+
+    pub fn place_path(
+        &mut self,
+        player: &Player,
+        coords: PathCoords,
+        path_type: PathType,
+        ensure_connected: bool,
+    ) -> Result<()> {
+        self.validate_path(player, coords.clone(), ensure_connected)?;
+        if let Some(v) = self.edges.get_mut(&coords) {
+            v.path_type = path_type;
+            v.owner = Some(player.id);
+            return Ok(());
+        }
+        Err(anyhow!("Invalid Build"))
+    }
+
+    fn validate_path(
+        &self,
+        player: &Player,
+        coords: PathCoords,
+        ensure_connected: bool,
+    ) -> Result<()> {
+        if !self.is_valid_path_coords(&coords) {
+            return Err(anyhow!("Settlement spot is not valid"));
+        }
+        //TODO ensure connected
+        Ok(())
+    }
+
+    fn is_valid_path_coords(&self, coords: &PathCoords) -> bool {
+        if let Some(v) = self.edges.get(&coords) {
+            if v.owner.is_some() {
+                return false;
+            }
+            // for neighbour in self.get_adjacent_vertices(v.) {
+            //     if neighbour.owner.is_some() {
+            //         return false;
+            //     }
+            // }
+            true
+        } else {
+            false
         }
     }
 }

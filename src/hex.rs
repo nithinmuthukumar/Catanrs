@@ -8,10 +8,3 @@ pub struct Hex {
     pub number: i32,
     pub pos: Axial,
 }
-
-#[derive(Debug, Clone, Copy)]
-pub enum BuildType {
-    City,
-    Settlement,
-    None,
-}

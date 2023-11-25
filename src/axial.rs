@@ -1,7 +1,7 @@
 use std::{cmp::Ordering, ops::Add};
 
 use bevy_math::{Vec2, Vec3};
-#[derive(Debug, PartialEq, Eq, Clone, Copy, Hash)]
+#[derive(Debug, PartialEq, Eq, Clone, Copy, Hash, PartialOrd, Ord)]
 pub struct Axial {
     q: i32,
     r: i32,
@@ -47,23 +47,6 @@ impl Add<Axial> for Axial {
 
     fn add(self, other: Axial) -> Axial {
         Axial::new(self.q + other.q, self.r + other.r)
-    }
-}
-impl PartialOrd for Axial {
-    fn partial_cmp(&self, other: &Axial) -> Option<Ordering> {
-        if self.q < other.q || (self.q == other.q && self.r < other.r) {
-            Some(Ordering::Less)
-        } else if self == other {
-            Some(Ordering::Equal)
-        } else {
-            Some(Ordering::Greater)
-        }
-    }
-}
-
-impl Ord for Axial {
-    fn cmp(&self, other: &Axial) -> Ordering {
-        self.partial_cmp(other).unwrap() // Unwrap the Option to get the Ordering
     }
 }
 impl From<Vec3> for Axial {

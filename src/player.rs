@@ -1,9 +1,9 @@
-use crate::{axial::Axial, edge::EdgeCoords, resource::ResourceGroup, vertex::Vertex};
+use crate::{axial::Axial, edge::PathCoords, resource::ResourceGroup, vertex::Vertex};
 #[derive(Debug)]
 pub struct Player {
     pub id: usize,
     pub buildings: Vec<Axial>,
-    pub paths: Vec<EdgeCoords>,
+    pub paths: Vec<PathCoords>,
     pub resources: ResourceGroup,
 }
 impl Player {
@@ -12,7 +12,7 @@ impl Player {
             id,
             buildings: Vec::new(),
             paths: Vec::new(),
-            resources: ResourceGroup::new(),
+            resources: ResourceGroup::empty(),
         }
     }
     pub fn init_players(size: usize) -> Vec<Player> {

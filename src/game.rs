@@ -15,7 +15,7 @@ impl Game {
         Self {
             players,
             board,
-            bank: ResourceGroup::new(),
+            bank: ResourceGroup::empty(),
             player_with_road: None,
             player_with_army: None,
         }
@@ -38,19 +38,19 @@ impl Game {
 }
 #[cfg(test)]
 mod test {
-    use crate::axial::Axial;
+    use crate::{
+        axial::Axial,
+        edge::{PathCoords, PathType},
+        vertex::BuildType,
+    };
 
     use super::*;
     #[test]
     fn test_roll() {
         // Arrange
         let mut game = Game::new(Player::init_players(4), Board::new()); // You should implement a new method for Game struct
-        game.board.place_building(
-            &game.players[0],
-            &Axial::new(0, 1),
-            crate::hex::BuildType::Settlement,
-            false,
-        );
+        game.board
+            .place_building(0, Axial::new(0, 1), BuildType::Settlement, false);
         dbg!(&game.board.vertices);
 
         // Act
@@ -61,6 +61,39 @@ mod test {
         for player in &game.players {
             dbg!(player);
         }
-        assert!(false)
+        let mut res = ResourceGroup::empty();
+        res.add_resource(crate::resource::Resource::Wood, 1);
+        assert_eq!(game.players[0].resources, res)
+    }
+    #[test]
+    fn test_place_building() {
+        let mut game = Game::new(Player::init_players(4), Board::new()); // You should implement a new method for Game struct
+
+        let b = game
+            .board
+            .place_building(0, Axial::new(0, 2), BuildType::Settlement, false);
+        match b {
+            Ok(_) => assert!(game.board.vertices[&Axial::new(0, 2)]
+                .owner
+                .is_some_and(|x| x == 0)),
+            Err(e) => {
+                eprintln!("Error {}", e);
+                assert!(false)
+            }
+        }
+    }
+    #[test]
+    fn test_place_path() {
+        let mut game = Game::new(Player::init_players(4), Board::new());
+        let path = PathCoords::new(Axial::new(1, 0), Axial::new(0, 1));
+        let b = game
+            .board
+            .place_path(&game.players[0], path.clone(), PathType::Road, false);
+        match b {
+            Ok(_) => assert!(game.board.edges[&path].owner.is_some_and(|x| x == 0)),
+            Err(e) => {
+                assert!(false)
+            }
+        }
     }
 }
