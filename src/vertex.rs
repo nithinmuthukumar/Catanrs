@@ -1,4 +1,8 @@
-use crate::resource::ResourceGroup;
+use std::any;
+
+use anyhow::{anyhow, Result};
+
+use crate::{board::Board, resource::ResourceGroup};
 
 use super::axial::Axial;
 
@@ -17,7 +21,7 @@ impl Vertex {
         }
     }
 }
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum BuildType {
     City,
     Settlement,
@@ -26,8 +30,8 @@ pub enum BuildType {
 impl BuildType {
     pub fn cost(&self) -> ResourceGroup {
         match self {
-            BuildType::City => ResourceGroup::empty(),
-            BuildType::Settlement => ResourceGroup::empty(),
+            BuildType::City => ResourceGroup::new(0, 1, 1, 1, 1),
+            BuildType::Settlement => ResourceGroup::new(3, 2, 0, 0, 0),
             BuildType::None => ResourceGroup::empty(),
         }
     }

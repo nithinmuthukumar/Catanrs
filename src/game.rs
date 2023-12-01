@@ -1,6 +1,7 @@
+use anyhow::Result;
 use rand::Rng;
 
-use crate::{board::Board, player::Player, resource::ResourceGroup};
+use crate::{board::Board, phase::Phase, player::Player, resource::ResourceGroup};
 
 #[derive(Debug)]
 pub struct Game {
@@ -15,7 +16,7 @@ impl Game {
         Self {
             players,
             board,
-            bank: ResourceGroup::empty(),
+            bank: ResourceGroup::new(20, 20, 20, 20, 20),
             player_with_road: None,
             player_with_army: None,
         }
@@ -34,6 +35,11 @@ impl Game {
         let mut rng = rand::thread_rng();
 
         rng.gen_range(1..=6) + rng.gen_range(1..=6)
+    }
+    pub fn play() -> Result<()> {
+        let mut phase = Phase::START_GAME;
+
+        Ok(())
     }
 }
 #[cfg(test)]
@@ -81,6 +87,24 @@ mod test {
                 assert!(false)
             }
         }
+        let c = game
+            .board
+            .place_building(0, Axial::new(0, 2), BuildType::City, false);
+        match c {
+            Ok(_) => {
+                assert!(game.board.vertices[&Axial::new(0, 2)]
+                    .owner
+                    .is_some_and(|x| x == 0));
+                assert_eq!(
+                    game.board.vertices[&Axial::new(0, 2)].build_type,
+                    BuildType::City
+                );
+            }
+            Err(e) => {
+                eprintln!("Error {}", e);
+                assert!(false)
+            }
+        }
     }
     #[test]
     fn test_place_path() {
@@ -88,7 +112,7 @@ mod test {
         let path = PathCoords::new(Axial::new(1, 0), Axial::new(0, 1));
         let b = game
             .board
-            .place_path(&game.players[0], path.clone(), PathType::Road, false);
+            .place_path(&game.players[0], path.clone(), PathType::Road);
         match b {
             Ok(_) => assert!(game.board.edges[&path].owner.is_some_and(|x| x == 0)),
             Err(e) => {

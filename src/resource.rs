@@ -25,7 +25,7 @@ impl ResourceGroup {
             .and_modify(|e| *e += amount);
     }
 
-    fn new(ore: i32, wheat: i32, sheep: i32, brick: i32, wood: i32) -> Self {
+    pub fn new(ore: i32, wheat: i32, sheep: i32, brick: i32, wood: i32) -> Self {
         let mut resources = HashMap::new();
         resources.insert(Resource::Ore, ore);
         resources.insert(Resource::Wheat, wheat);

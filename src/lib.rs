@@ -5,6 +5,7 @@ pub mod edge;
 pub mod game;
 pub mod harbor;
 pub mod hex;
+pub mod phase;
 pub mod player;
 pub mod resource;
 pub mod vertex;

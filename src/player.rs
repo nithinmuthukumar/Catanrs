@@ -1,7 +1,8 @@
 use crate::{axial::Axial, edge::PathCoords, resource::ResourceGroup, vertex::Vertex};
+type PlayerId = usize;
 #[derive(Debug)]
 pub struct Player {
-    pub id: usize,
+    pub id: PlayerId,
     pub buildings: Vec<Axial>,
     pub paths: Vec<PathCoords>,
     pub resources: ResourceGroup,

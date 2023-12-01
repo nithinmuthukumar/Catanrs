@@ -108,12 +108,6 @@ impl Board {
         };
         board
     }
-    pub fn get_valid_settlement_coords(&self) -> Vec<&Vertex> {
-        self.vertices
-            .values()
-            .filter(|&v| self.is_valid_settlement_coords(&v.pos))
-            .collect()
-    }
     pub fn get_adjacent_vertices(&self, a: Axial) -> Vec<&Vertex> {
         OFFSETS
             .iter()
@@ -122,23 +116,6 @@ impl Board {
             .collect()
     }
 
-    /// Checks if a vertex is available for settlement
-    // TODO define is_valid_coords for every type of building
-    pub fn is_valid_settlement_coords(&self, pos: &Axial) -> bool {
-        if let Some(v) = self.vertices.get(pos) {
-            if v.owner.is_some() {
-                return false;
-            }
-            for neighbour in self.get_adjacent_vertices(v.pos) {
-                if neighbour.owner.is_some() {
-                    return false;
-                }
-            }
-            true
-        } else {
-            false
-        }
-    }
     pub fn place_building(
         &mut self,
         player: usize,
@@ -147,7 +124,8 @@ impl Board {
         //makes sure there is a road connecting
         ensure_connected: bool,
     ) -> Result<()> {
-        self.validate_build(player, &pos, ensure_connected)?;
+        self.validate_build(build_type, player, pos, ensure_connected)?;
+
         if let Some(v) = self.vertices.get_mut(&pos) {
             v.build_type = build_type;
             v.owner = Some(player);
@@ -156,13 +134,36 @@ impl Board {
         return Err(anyhow!("Invalid Build"));
     }
 
-    fn validate_build(&self, player: usize, pos: &Axial, ensure_connected: bool) -> Result<()> {
-        if !self.is_valid_settlement_coords(pos) {
-            return Err(anyhow!("Settlement spot is not valid"));
-        }
-        //TODO ensure_connected
+    fn validate_build(
+        &self,
+        build_type: BuildType,
+        player: usize,
+        pos: Axial,
+        ensure_connected: bool,
+    ) -> Result<(), Error> {
+        match build_type {
+            BuildType::City => self.validate_city(player, pos),
+            BuildType::Settlement => self.validate_settlement(player, pos, ensure_connected),
+            BuildType::None => todo!(),
+        }?;
         Ok(())
     }
+    pub fn get_valid_build_spots(
+        &self,
+        build_type: BuildType,
+        player: usize,
+        ensure_connected: bool,
+    ) -> Vec<Axial> {
+        self.vertices
+            .keys()
+            .filter(|&v| {
+                self.validate_build(build_type, player, *v, ensure_connected)
+                    .is_ok()
+            })
+            .cloned()
+            .collect()
+    }
+
     pub fn yield_for_roll(&self, roll: i32) -> HashMap<usize, ResourceGroup> {
         let mut yields = HashMap::new();
         for hex in self.hexes.values() {
@@ -183,9 +184,8 @@ impl Board {
         player: &Player,
         coords: PathCoords,
         path_type: PathType,
-        ensure_connected: bool,
     ) -> Result<()> {
-        self.validate_path(player, coords.clone(), ensure_connected)?;
+        self.validate_path(player, coords.clone())?;
         if let Some(v) = self.edges.get_mut(&coords) {
             v.path_type = path_type;
             v.owner = Some(player.id);
@@ -194,12 +194,7 @@ impl Board {
         Err(anyhow!("Invalid Build"))
     }
 
-    fn validate_path(
-        &self,
-        player: &Player,
-        coords: PathCoords,
-        ensure_connected: bool,
-    ) -> Result<()> {
+    fn validate_path(&self, player: &Player, coords: PathCoords) -> Result<()> {
         if !self.is_valid_path_coords(&coords) {
             return Err(anyhow!("Settlement spot is not valid"));
         }
@@ -220,6 +215,39 @@ impl Board {
             true
         } else {
             false
+        }
+    }
+    pub fn validate_settlement(
+        &self,
+        player: usize,
+        pos: Axial,
+        ensure_connected: bool,
+    ) -> Result<()> {
+        if let Some(v) = self.vertices.get(&pos) {
+            if v.owner.is_some() {
+                return Err(anyhow!("Vertex is already owned"));
+            }
+            for neighbour in self.get_adjacent_vertices(v.pos) {
+                if neighbour.owner.is_some() {
+                    return Err(anyhow!("Neighbour is occupied {:?}", neighbour));
+                }
+            }
+            Ok(())
+        } else {
+            return Err(anyhow!("Vertex does not exist"));
+        }
+    }
+    pub fn validate_city(&self, player: usize, pos: Axial) -> Result<()> {
+        if let Some(v) = self.vertices.get(&pos) {
+            if !v.owner.is_some_and(|owner| owner == player) {
+                Err(anyhow!("Vertex is not owned by player"))
+            } else if v.build_type != BuildType::Settlement {
+                Err(anyhow!("There is no settlement on the vertex"))
+            } else {
+                Ok(())
+            }
+        } else {
+            Err(anyhow!("Vertex does not exist"))
         }
     }
 }
